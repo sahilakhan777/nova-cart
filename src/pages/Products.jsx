@@ -9,6 +9,8 @@ const Products = () => {
     const [searchData, setSearchData] = useState('');
     const [filteredData, setFilteredData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedCategory, setSelectedCategory] = useState("All Categories");
+    const [priceOrder, setPriceOrder] = useState("low-high");
     let {cartItem} = useContext(Auth)
     console.log(productsData)
     const getProductData = async ()=>{
@@ -29,16 +31,27 @@ const Products = () => {
     useEffect(()=>{
         let timeout = setTimeout(() => {
             let result =  productsData.filter((val)=>{
-            return val.category.toLowerCase().includes(searchData.toLowerCase())
+              const matchesCategory =
+               selectedCategory === "All Categories" ||
+              val.category === selectedCategory;
+              const matchesSearch = 
+              val.category.toLowerCase().includes(searchData.toLowerCase()) ||
+              val.title.toLowerCase().includes(searchData.toLowerCase())
+              return matchesCategory && matchesSearch
             })
+            if(priceOrder === 'low-high'){
+              result.sort((a,b)=> a.price - b.price)
+            }else if(priceOrder === 'high-low')
+              result.sort((a,b)=> b.price - a.price)
+
             setFilteredData(result);
         }, 700);
         return ()=> clearTimeout(timeout);
         
-    },[searchData,productsData])
+    },[searchData,productsData,selectedCategory,priceOrder])
 
    
-    const displayData = searchData ? filteredData : productsData
+
    if (isLoading) return <h1 className='text-2xl'>Loading products...</h1>
    return(
     <>
@@ -60,13 +73,15 @@ const Products = () => {
 
         {/* Category Dropdown */}
         <div className="relative w-full md:w-[238px] shrink-0">
-          <select
+          <select 
+          value={selectedCategory}
+          onChange={(e)=> setSelectedCategory(e.target.value)}
            className="w-full appearance-none bg-[#111827] border border-gray-700 rounded-xl px-3 py-2 pr-10 text-white text-xl outline-none cursor-pointer">
-            <option >All Categories</option>
-            <option >Mens Clothing</option>
-            <option >Womens Clothing</option>
-            <option >Electronics</option>
-            <option >Jewellery</option>
+            <option value="All Categories">All Categories</option>
+            <option value="men's clothing">Mens Clothing</option>
+            <option value="women's clothing">Womens Clothing</option>
+            <option value="electronics">Electronics</option>
+            <option value="jewelery">Jewellery</option>
           </select>
           
 
@@ -78,9 +93,12 @@ const Products = () => {
 
         {/* Price Dropdown */}
         <div className="relative w-full md:w-[238px] shrink-0">
-          <select className="w-full appearance-none bg-[#111827] border border-gray-700 rounded-xl px-3 py-2 pr-10 text-white text-xl outline-none cursor-pointer">
-            <option>Price: Low-High</option>
-            <option>Price: High-Low</option>
+          <select
+          value={priceOrder}
+          onChange={(e)=> setPriceOrder(e.target.value)}
+           className="w-full appearance-none bg-[#111827] border border-gray-700 rounded-xl px-3 py-2 pr-10 text-white text-xl outline-none cursor-pointer">
+            <option value="low-high">Price: Low-High</option>
+            <option value="high-low">Price: High-Low</option>
           </select>
 
           <ChevronDown
@@ -93,10 +111,14 @@ const Products = () => {
     </div>
     <div className='grid grid-cols-4 gap-5 m-5'>
         { 
-            displayData.map((val)=>{
-                let isInCart = cartItem.find((elem)=> elem.quantity>0 && elem.id===val.id)
-               return <ProductCard key={val.id} product={val} isInCart={isInCart}/>
+           filteredData.length === 0 ? 
+           (<p className='text-red-500'>No product Found.</p>):
+           (
+             filteredData.map((val)=>{
+              let isInCart = cartItem.find((elem)=> elem.quantity>0 && elem.id===val.id)
+              return <ProductCard key={val.id} product={val} isInCart={isInCart}/>
             })
+           )
         }
         
     </div>
